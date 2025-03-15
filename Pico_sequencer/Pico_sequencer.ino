@@ -524,6 +524,7 @@ void loop() {
         drawheader("Note");
         drawnotes(notes[current_track]);
         drawindex(notes[current_track].index);
+        drawseqlen(notes[current_track].last);
         UI_state=NOTE_EDIT;
         break;
       case NOTE_EDIT:
@@ -538,12 +539,14 @@ void loop() {
           displaytimer=millis(); // reset display blanking timer
         }
         updateindex(notes[current_track]); // show the index on screen
+        updateseqlen(notes[current_track]);
         break;
 
       case GATE_DRAW:
         drawheader("Gate");
         drawbars(gates[current_track]);
         drawindex(gates[current_track].index);
+        drawseqlen(gates[current_track].last);
         UI_state=GATE_EDIT;
         break;
       case GATE_EDIT:
@@ -556,12 +559,14 @@ void loop() {
           displaytimer=millis(); // reset display blanking timer
         }         
         updateindex(gates[current_track]); // show the index on screen
+        updateseqlen(gates[current_track]);
         break;  
 
       case VELOCITY_DRAW:
         drawheader("Velocity");
         drawbars(velocities[current_track]);
         drawindex(velocities[current_track].index);
+        drawseqlen(velocities[current_track].last);
         UI_state=VELOCITY_EDIT;
         break;
       case VELOCITY_EDIT:
@@ -574,12 +579,14 @@ void loop() {
           displaytimer=millis(); // reset display blanking timer
         }  
         updateindex(velocities[current_track]); // show the index on screen
+        updateseqlen(velocities[current_track]);
         break;  
 
       case OFFSET_DRAW:  // offsets added to the note sequence
         drawheader("Offset");
         drawnotes(offsets[current_track]);
         drawindex(offsets[current_track].index);
+        drawseqlen(offsets[current_track].last);
         UI_state=OFFSET_EDIT;
         break;
       case OFFSET_EDIT:
@@ -592,12 +599,14 @@ void loop() {
           displaytimer=millis(); // reset display blanking timer
         }        
         updateindex(offsets[current_track]); // show the index on screen
+        updateseqlen(offsets[current_track]);
         break;
 
       case PROBABILITY_DRAW:
         drawheader("Probability");
         drawbars(probability[current_track]);
         drawindex(probability[current_track].index);
+        drawseqlen(probability[current_track].last);
         UI_state=PROBABILITY_EDIT;
         break;
       case PROBABILITY_EDIT:
@@ -610,12 +619,14 @@ void loop() {
           displaytimer=millis(); // reset display blanking timer
         } 
         updateindex(probability[current_track]); // show the index on screen
+        updateseqlen(probability[current_track]);
         break;  
 
       case RATCHET_DRAW:
         drawheader("Ratchets");
         drawbars(ratchets[current_track]);
         drawindex(ratchets[current_track].index);
+        drawseqlen(ratchets[current_track].last);
         UI_state=RATCHET_EDIT;
         break;
       case RATCHET_EDIT:
@@ -628,12 +639,14 @@ void loop() {
           displaytimer=millis(); // reset display blanking timer
         }        
         updateindex(ratchets[current_track]); // show the index on screen
+        updateseqlen(ratchets[current_track]);
         break; 
 
       case MOD_DRAW:
         drawheader("Mod");
         drawbars(mods[current_track]);
         drawindex(mods[current_track].index);
+        drawseqlen(mods[current_track].last);
         UI_state=MOD_EDIT;
         break;
       case MOD_EDIT:
@@ -646,6 +659,7 @@ void loop() {
           displaytimer=millis(); // reset display blanking timer
         }        
         updateindex(mods[current_track]); // show the index on screen
+        updateseqlen(mods[current_track]);
         break; 
 
       case DISPLAYOFF:

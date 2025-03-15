@@ -78,6 +78,36 @@ void drawbars(sequencer p) {
   for (int i=0;i< SEQ_STEPS;++i) drawbar(i,p.val[i],p.max);
 }
 
+// plot sequence length on the screen
+// len = last sequence position 0-15
+void drawseqlen(int16_t len) {
+  int x=CANVAS_ORIGIN_X+(CANVAS_WIDTH/SEQ_STEPS)*len+7;
+  int y=CANVAS_ORIGIN_Y -6; //
+  display.drawLine(x,y,x, y+4, WHITE);
+#ifdef OLED_DISPLAY
+  display.display();
+#endif
+}
+
+void undrawseqlen(int16_t len) {
+  int x=CANVAS_ORIGIN_X+(CANVAS_WIDTH/SEQ_STEPS)*len+7;
+  int y=CANVAS_ORIGIN_Y -6; //
+  display.drawLine(x,y,x, y+4, BLACK);
+#ifdef OLED_DISPLAY
+  display.display();
+#endif
+}
+
+// update the sequence length on the screen (vertical bar)
+void updateseqlen(sequencer seq) {
+  static int16_t last_seqlen; // tracks the sequence length
+  if (seq.last != last_seqlen) { // draw the sequence length marker
+    undrawseqlen(last_seqlen);
+    drawseqlen(seq.last);
+    last_seqlen=seq.last;
+  }
+}
+
 // plot index on the screen
 // index = position 0-15
 void drawindex(int16_t index) {
