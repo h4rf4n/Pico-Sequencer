@@ -33,6 +33,8 @@
  * Graphics and text UI is processed on core 0, sequencer clocking and MIDI processed by core 1
  * 5/12/2023 - moved all the MidiUSB processing to core 1 - running MidiUSB.read() and handlers on core 0 was causing lockups
  * 5/13/23 - added display of note, gate length etc to top line
+ * Updates by h4rf4n:
+ * 3/15/25 - tweaks to suit my hardware (mainly SSD1306 oled display), splash screen update and usb midi device name change
  */
 
 
@@ -41,7 +43,8 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_GFX.h>
-#include <SH1106.h>
+//#include <SH1106.h>
+#include <Adafruit_SSD1306.h>
 //#include <Adafruit_S6D02A1.h> // Hardware-specific library for S6D02A1
 #include <Adafruit_TinyUSB.h>
 #include <MIDI.h>
@@ -161,7 +164,7 @@ ClickEncoder menuenc(MENU_ENCA_IN,MENU_ENCB_IN,MENU_ENCSW_IN,ENCDIVIDE); // menu
 //#define TFT18_DISPLAY  // use 1.8" TFT banggood display
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
 //#define SCREEN_WIDTH 160 // OLED display width, in pixels
 //#define SCREEN_HEIGHT 128 // OLED display height, in pixels
 #define SCREEN_BUFFER_SIZE (SCREEN_WIDTH * ((SCREEN_HEIGHT + 7) / 8))
@@ -176,8 +179,9 @@ ClickEncoder menuenc(MENU_ENCA_IN,MENU_ENCB_IN,MENU_ENCSW_IN,ENCDIVIDE); // menu
 #define TFT_CS     17
 #define TFT_RESET  20
 
-Adafruit_SH1106 display(OLED_DC, OLED_RESET, OLED_CS);
+//Adafruit_SH1106 display(OLED_DC, OLED_RESET, OLED_CS);
 //Adafruit_S6D02A1 display = Adafruit_S6D02A1(TFT_CS, TFT_DC, TFT_RESET);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 
 
@@ -347,11 +351,37 @@ void setup() {
   pinMode(SHIFT_BUTTON, INPUT_PULLUP);
 
  // setRX(pin_size_t pin);  // assign RP2040 SPI0 pins
-  SPI.setCS(17);
-  SPI.setSCK(18);
-  SPI.setTX(19);
+  // SPI.setCS(17);
+  // SPI.setSCK(18);
+  // SPI.setTX(19);
 
+  // needed for my configuration (SSD1306)
+  Wire.setSDA(16);
+  Wire.setSCL(17);
 
+  //display.begin(SH1106_SWITCHCAPVCC);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  // Use this initializer if using a 1.8" TFT screen:
+  // display.initR(INITR_BLACKTAB);      // Init TFT, black tab
+
+  display.fillScreen(BLACK);
+  display.setRotation(2);  // mounted upside down
+// text display tests
+
+  display.setTextColor(WHITE,BLACK); // foreground, background  
+  display.setCursor(0,0);
+  display.println("    Pico Sequencer");
+  display.println();
+  display.println("    > h4rf4n mod <");
+
+#ifdef OLED_DISPLAY
+  display.display();
+#endif
+  displaytimer=millis(); // reset display blanking timer
+
+  TinyUSBDevice.clearConfiguration();
+  TinyUSBDevice.setManufacturerDescriptor("h4rf4n");
+  TinyUSBDevice.setProductDescriptor("Pico Midi Sequencer");
 
 // set up timer interrupt 
   // Interval in unsigned long microseconds
