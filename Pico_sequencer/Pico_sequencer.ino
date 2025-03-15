@@ -35,6 +35,7 @@
  * 5/13/23 - added display of note, gate length etc to top line
  * Updates by h4rf4n:
  * 3/15/25 - tweaks to suit my hardware (mainly SSD1306 oled display), splash screen update and usb midi device name change
+ * 3/15/25 - add midi on serial port. replace serial.print with DEBUG macro
  */
 
 
@@ -52,6 +53,14 @@
 //#include "StepSeq.h"
 
 
+// uncomment this if you want debug message sent to serial port
+#define SERIAL_DEBUG
+
+// uncomment this if you want to also use serial midi, allowing the Pico Sequencer to work in "stand-alone" mode
+// use a level shifter to use 5V output (more reliable) and attach it to default serial port UART1/Serial1 (GPIO 0+1)
+// currently, only output to a serial midi device is possible. Should be extended to input (transport commands, synchronisation)
+#define SERIAL_MIDI
+
 
 #define TRUE 1
 #define FALSE 0
@@ -61,6 +70,21 @@
 // I used mostly int16 types - its what the menu requires and the compiler seems to deal with basic conversions
 
 //int16_t steps = 8; // initial number of steps
+
+#ifdef SERIAL_DEBUG
+  #define DEBUG(msg) Serial.print("msg");
+  #define DEBUG_F(msg) Serial.printf(msg);
+  #define DEBUG_LN(msg) Serial.println("msg");
+#else
+  #define DEBUG(msg) 
+  #define DEBUG_F(msg) 
+  #define DEBUG_LN(msg)
+#endif
+
+#ifdef SERIAL_MIDI
+  #define USB_MIDI_TIMEOUT 2*1000 // usb midi timout at startup
+  bool useMidiUSB=false; // has usb midi been detected at startup ?
+#endif
 
 bool startbutton;  // start/stop button state
 bool running=true; // sequencer running flag
@@ -85,7 +109,7 @@ int16_t CCchannel[NTRACKS] = {1,2,3,4}; // midi channel to use for CCs
 int16_t mod_enabled[NTRACKS] = {0,0,0,0}; // 1 if mod sequencer for track is on, 0 if off
 
 #define DISPLAY_BLANK_MS 120*1000  // display blanking time
-int32_t displaytimer ; // display blanking timer
+int32_t displaytimer; // display blanking timer
 
 #define TEMPO    120
 #define PPQN 24  // clocks per quarter note
@@ -196,6 +220,9 @@ Adafruit_USBD_MIDI usb_midi;
 // and attach usb_midi as the transport.
 MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MidiUSB);
 
+#ifdef SERIAL_MIDI
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MidiSerial);
+#endif
 
 // timer interrupt handler
 // scans thru the multiplexed encoders and handles the menu encoder
@@ -262,13 +289,19 @@ void displayupdate(){
 
 // note that the Adafruit stack expects MIDI channel to be 1-16, not 0-15
 void noteOn(byte channel, byte pitch, byte velocity) {
-  MidiUSB.sendNoteOn(pitch,velocity,channel+1);
-//  Serial.printf("Noteon ch %d pitch %d vel %d \n",channel,pitch,velocity);
+  if (useMidiUSB) MidiUSB.sendNoteOn(pitch,velocity,channel+1);
+#ifdef SERIAL_MIDI
+  MidiSerial.sendNoteOn(pitch,velocity,channel+1);
+#endif
+  DEBUG_F("\"Noteon ch %d pitch %d vel %d \n\",channel,pitch,velocity")
 }
 
 void noteOff(byte channel, byte pitch, byte velocity) {
-  MidiUSB.sendNoteOff(pitch,velocity,channel+1);
-//  Serial.printf("Noteoff ch %d pitch %d vel %d \n",channel,pitch,velocity);
+  if (useMidiUSB) MidiUSB.sendNoteOff(pitch,velocity,channel+1);
+#ifdef SERIAL_MIDI
+  MidiSerial.sendNoteOff(pitch,velocity,channel+1);
+#endif
+  DEBUG_F("\"Noteoff ch %d pitch %d vel %d \n\",channel,pitch,velocity")
 }
 
 // First parameter is the event type (0x0B = control change).
@@ -277,7 +310,10 @@ void noteOff(byte channel, byte pitch, byte velocity) {
 // Fourth parameter is the control value (0-127).
 
 void controlChange(byte channel, byte control, byte value) {
-  MidiUSB.sendControlChange(control,value,channel+1);
+  if (useMidiUSB) MidiUSB.sendControlChange(control,value,channel+1);
+#ifdef SERIAL_MIDI
+  MidiSerial.sendControlChange(control,value,channel+1);
+#endif
 }
 
 
@@ -338,7 +374,10 @@ void handleContinue(void){
 }
 
 void setup() {
-  Serial.begin(115200);
+  #ifdef SERIAL_DEBUG
+    Serial.begin(115200);
+  #endif
+  DEBUG_LN("Initialising 0...");
 
   pinMode(A_MUX_0, OUTPUT);    // encoder mux addresses
   pinMode(A_MUX_1, OUTPUT);  
@@ -366,7 +405,7 @@ void setup() {
 
   display.fillScreen(BLACK);
   display.setRotation(2);  // mounted upside down
-// text display tests
+  // text display tests
 
   display.setTextColor(WHITE,BLACK); // foreground, background  
   display.setCursor(0,0);
@@ -386,18 +425,23 @@ void setup() {
 // set up timer interrupt 
   // Interval in unsigned long microseconds
   if (ITimer.attachInterruptInterval(TIMER_MICROS, TimerHandler0))
-    Serial.println("Started ITimer OK");
+    DEBUG_LN("Started ITimer OK")
   else {
-    Serial.println("Can't set ITimer. Select another freq. or timer");
-  } 
+    DEBUG_LN("Can't set ITimer. Select another freq. or timer")
+  }  
    
 #if defined(ARDUINO_ARCH_MBED) && defined(ARDUINO_ARCH_RP2040)
   // Manual begin() is required on core without built-in support for TinyUSB such as mbed rp2040
   TinyUSB_Device_Init(0);
 #endif
+
   // Initialize MIDI, and listen to all MIDI channels
   // This will also call usb_midi's begin()
   MidiUSB.begin(MIDI_CHANNEL_OMNI);
+
+#ifdef SERIAL_MIDI
+  MidiSerial.begin(MIDI_CHANNEL_OMNI);
+#endif
 
   // attach MIDI message handler functions
 //  MIDI.setHandleNoteOn(handlenoteOn);
@@ -408,24 +452,24 @@ void setup() {
   MidiUSB.setHandleStart(handleStart);
   MidiUSB.setHandleContinue(handleContinue);
 
+  display.setCursor(0, 35); 
+  display.print("Initializing USB... ");
+  #ifdef OLED_DISPLAY
+  display.display();
+  #endif
+
+#ifdef SERIAL_MIDI
+  // wait for usb device to mount. if it times out, do not use midi over USB 
+  useMidiUSB = TinyUSBDevice.mounted();
+  int32_t t0 = millis();
+  while( !useMidiUSB && millis()-t0 < USB_MIDI_TIMEOUT) {    
+    delay(1);
+    useMidiUSB = TinyUSBDevice.mounted();
+  }
+#else
   // wait until device mounted
   while( !TinyUSBDevice.mounted() ) delay(1);
-
-  display.begin(SH1106_SWITCHCAPVCC);
-   // Use this initializer if using a 1.8" TFT screen:
-//  display.initR(INITR_BLACKTAB);      // Init TFT, black tab
-
-  display.fillScreen(BLACK);
-  display.setRotation(2);  // mounted upside down
-// text display tests
-
-	display.setTextColor(WHITE,BLACK); // foreground, background  
-  display.setCursor(0,30);
-  display.println("   Pico Sequencer");
-#ifdef OLED_DISPLAY
-  display.display();
 #endif
-  delay(3000);
 
   display.fillScreen(BLACK);
   displaytimer=millis(); // reset display blanking timer
