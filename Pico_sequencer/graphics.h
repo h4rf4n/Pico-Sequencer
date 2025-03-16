@@ -43,9 +43,17 @@ void undrawnote(int16_t index,int16_t note_offset) {
 #endif
 }
 
+// required forward declarations
+void undrawindex(int16_t index, int16_t active = 1);
+void updateseqlen(sequencer seq);
+
 // draw all the notes in a note sequence
 void drawnotes(sequencer p) {
-  for (int i=0;i< SEQ_STEPS;++i) drawnote(i,p.val[i]);
+  for (int i=0;i< SEQ_STEPS;++i) {
+    drawnote(i,p.val[i]);
+    undrawindex(i,p.active[i]);
+  }
+  updateseqlen(p);
 }
 
 // plot a bar on the screen
@@ -75,7 +83,11 @@ void undrawbar(int16_t index,int16_t val, int16_t max) {
 
 // draw all the notes in a note sequence
 void drawbars(sequencer p) {
-  for (int i=0;i< SEQ_STEPS;++i) drawbar(i,p.val[i],p.max);
+  for (int i=0;i< SEQ_STEPS;++i) {
+    drawbar(i,p.val[i],p.max);
+    undrawindex(i,p.active[i]);
+  }
+  updateseqlen(p);
 }
 
 // plot sequence length on the screen
@@ -100,7 +112,7 @@ void undrawseqlen(int16_t len) {
 
 // update the sequence length on the screen (vertical bar)
 void updateseqlen(sequencer seq) {
-  static int16_t last_seqlen; // tracks the sequence length
+  static int16_t last_seqlen = -1; // tracks the sequence length
   if (seq.last != last_seqlen) { // draw the sequence length marker
     undrawseqlen(last_seqlen);
     drawseqlen(seq.last);
@@ -110,19 +122,27 @@ void updateseqlen(sequencer seq) {
 
 // plot index on the screen
 // index = position 0-15
-void drawindex(int16_t index) {
+void drawindex(int16_t index, int16_t active = 1) {
   int x=CANVAS_ORIGIN_X+(CANVAS_WIDTH/SEQ_STEPS)*index+4;
   int y=CANVAS_ORIGIN_Y -4; //
-  display.fillCircle(x,y,2, WHITE);
+  if (active!=0)
+    display.fillCircle(x,y,2, WHITE);
+  else
+    display.fillCircle(x,y,1, WHITE);
 #ifdef OLED_DISPLAY
   display.display();
 #endif
 }
 
-void undrawindex(int16_t index) {
+void undrawindex(int16_t index, int16_t active) {
   int x=CANVAS_ORIGIN_X+(CANVAS_WIDTH/SEQ_STEPS)*index+4;
   int y=CANVAS_ORIGIN_Y -4; //
-  display.fillCircle(x,y,2, BLACK);
+  if (active!=0) {
+    display.fillCircle(x,y,3, WHITE);
+    display.fillCircle(x,y,2, BLACK);
+  }
+  else
+    display.fillCircle(x,y,3, BLACK);
 #ifdef OLED_DISPLAY
   display.display();
 #endif
@@ -130,12 +150,19 @@ void undrawindex(int16_t index) {
 
 // update the index on the screen - LED emulation
 void updateindex(sequencer seq) {
-  static int16_t last_index; // tracks the sequencer index
+  static int16_t last_index = -1; // tracks the sequencer index
   if (seq.index != last_index) { // draw the index marker
-    undrawindex(last_index);
-    drawindex(seq.index);
+    undrawindex(last_index, seq.active[last_index]);
+    drawindex(seq.index, seq.active[seq.index]);
     last_index=seq.index;
   }
+}
+
+// draw/undraw all indexes and sequence length line
+void drawindexes(sequencer p) {
+  for (int i=0;i< SEQ_STEPS;++i) 
+    undrawindex(i, p.active[i]);
+  updateseqlen(p);
 }
 
 // edit a note sequence
@@ -154,10 +181,21 @@ int16_t editnotes(sequencer *seq) {
       drawnote(steppos,seq->val[steppos]);
       edited_step=steppos+1; // if value changed return its index +1
     }
-    if (enc[steppos].getButton()==ClickEncoder::Closed) { // set end of sequence with the button
+    ClickEncoder::Button button = enc[steppos].getButton();
+    if (button==ClickEncoder::DoubleClicked) { // set end of sequence with double click
       rp2040.idleOtherCore();
       seq->last=steppos;
       rp2040.resumeOtherCore();
+    }
+    if (button==ClickEncoder::Clicked) { // activate or deactivate a step with single click
+      int16_t active = 1-seq->active[steppos];
+      if (seq->active[steppos]>-1) {
+        rp2040.idleOtherCore();
+        seq->active[steppos] = active;
+        rp2040.resumeOtherCore();
+        if (seq->index!=steppos)
+          undrawindex(steppos, active);
+      }
     }
   }
   return edited_step;
@@ -177,10 +215,21 @@ int16_t editbars(sequencer *seq) {
       drawbar(steppos,seq->val[steppos],seq->max);
       edited_step=steppos+1;
     }
-    if (enc[steppos].getButton()==ClickEncoder::Closed) { // set end of sequence with the button
+    ClickEncoder::Button button = enc[steppos].getButton();
+    if (button==ClickEncoder::DoubleClicked) { // set end of sequence with double click
       rp2040.idleOtherCore();
       seq->last=steppos;
       rp2040.resumeOtherCore();
+    }
+    if (button==ClickEncoder::Clicked) { // activate or deactivate a step with single click
+      int16_t active = 1-seq->active[steppos];
+      if (seq->active[steppos]>-1) {
+        rp2040.idleOtherCore();
+        seq->active[steppos] = active;
+        rp2040.resumeOtherCore();
+        if (seq->index!=steppos)
+          undrawindex(steppos, active);
+      }
     }
   }
   return edited_step;

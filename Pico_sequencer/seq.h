@@ -32,6 +32,7 @@ int16_t lastCC[NTRACKS]; // we save the last CC message - reduce MIDI traffic by
 
 struct sequencer {
   int16_t val[SEQ_STEPS];  // values of note offsets from root, gate lengths etc. 
+  int16_t active[SEQ_STEPS];  // step active or not. possible values : 1=active, 0=deactivated, -1=cannot be changed
   int16_t max;    // maximum positive value of val - used for UI scaling
   int16_t index;    // index of step we are on
   int16_t stepmode;    // step mode - fwd, backward etc
@@ -48,6 +49,7 @@ struct sequencer {
 // notes are stored as offsets from the root 
 sequencer notes[NTRACKS] = {
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   NOTERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -61,6 +63,7 @@ sequencer notes[NTRACKS] = {
   60,   // root note
 
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   NOTERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -74,6 +77,7 @@ sequencer notes[NTRACKS] = {
   60,   // root note
 
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   NOTERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -87,6 +91,7 @@ sequencer notes[NTRACKS] = {
   60,   // root note
 
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   NOTERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -103,6 +108,7 @@ sequencer notes[NTRACKS] = {
 // offsets (translations) are added to the current note
 sequencer offsets[NTRACKS] = {
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   NOTERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -116,6 +122,7 @@ sequencer offsets[NTRACKS] = {
   60,   // root note
 
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   NOTERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -129,6 +136,7 @@ sequencer offsets[NTRACKS] = {
   60,   // root note
 
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   NOTERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -142,6 +150,7 @@ sequencer offsets[NTRACKS] = {
   60,   // root note
 
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   NOTERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -157,6 +166,7 @@ sequencer offsets[NTRACKS] = {
 
 sequencer gates[NTRACKS] = {
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,  // initial data
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,  // gates may not be deactivated
   GATERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -170,6 +180,7 @@ sequencer gates[NTRACKS] = {
   60,   // root note
 
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,  // initial data
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,  // gates may not be deactivated
   GATERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -183,6 +194,7 @@ sequencer gates[NTRACKS] = {
   60,   // root note
 
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,  // initial data
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,  // gates may not be deactivated
   GATERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -196,6 +208,7 @@ sequencer gates[NTRACKS] = {
   60,   // root note
 
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,  // initial data
+  -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,  // gates may not be deactivated
   GATERANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -211,6 +224,7 @@ sequencer gates[NTRACKS] = {
 
 sequencer ratchets[NTRACKS] = {
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   RATCHETRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -224,6 +238,7 @@ sequencer ratchets[NTRACKS] = {
   60,   // root note
 
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   RATCHETRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -237,6 +252,7 @@ sequencer ratchets[NTRACKS] = {
   60,   // root note
 
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   RATCHETRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -250,6 +266,7 @@ sequencer ratchets[NTRACKS] = {
   60,   // root note
 
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   RATCHETRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -266,6 +283,7 @@ sequencer ratchets[NTRACKS] = {
 // velocities have MIDI values 0-127 
 sequencer velocities[NTRACKS] = {
   22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,  // initial setting ~ 80% velocity
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   VELOCITYRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -279,6 +297,7 @@ sequencer velocities[NTRACKS] = {
   60,   // root note
 
   22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,  // initial setting ~ 80% velocity
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   VELOCITYRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -292,6 +311,7 @@ sequencer velocities[NTRACKS] = {
   60,   // root note
 
   22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,  // initial setting ~ 80% velocity
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   VELOCITYRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -305,6 +325,7 @@ sequencer velocities[NTRACKS] = {
   60,   // root note
 
   22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,  // initial setting ~ 80% velocity
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   VELOCITYRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -321,6 +342,7 @@ sequencer velocities[NTRACKS] = {
 // probability values 
 sequencer probability[NTRACKS] = {
   9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,  // initial data 100% probability
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   PROBABILITYRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -334,6 +356,7 @@ sequencer probability[NTRACKS] = {
   0,   // holds euclidean offset in this case
 
   9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,  // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   PROBABILITYRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -347,6 +370,7 @@ sequencer probability[NTRACKS] = {
   0,   // holds euclidean offset in this case
 
   9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,  // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   PROBABILITYRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -360,6 +384,7 @@ sequencer probability[NTRACKS] = {
   0,   // holds euclidean offset in this case
 
   9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,  // initial data
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   PROBABILITYRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -376,6 +401,7 @@ sequencer probability[NTRACKS] = {
 // modulation values 
 sequencer mods[NTRACKS] = {
   -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,  // initial data 
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   MODRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -389,6 +415,7 @@ sequencer mods[NTRACKS] = {
   16,   // CC number in this case
 
   -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,  // initial data 
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   MODRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -402,6 +429,7 @@ sequencer mods[NTRACKS] = {
   17,   // CC number in this case
 
   -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,  // initial data 
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   MODRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -415,6 +443,7 @@ sequencer mods[NTRACKS] = {
   18,   // CC number in this case
 
   -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,  // initial data 
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  // all steps active by default
   MODRANGE,  // maximum value
   0,   // step index
   FORWARD, // step mode
@@ -499,7 +528,7 @@ void clocktick (long clockperiod) {
     gatestate=seqclock(&gates[track]);  
 
     // check if gate became active and if so send note on
-    if (gatestate && trackenabled[track] && (probability[track].val[probability[track].index] > random(PROBABILITYRANGE-1))) {
+    if (gatestate && notes[track].active[notes[track].index] && trackenabled[track] && (probability[track].val[probability[track].index] > random(PROBABILITYRANGE-1))) {
       active_notelength[track]=clockperiod*gates[track].val[gates[track].index]*gates[track].divider/GATERANGE;     // calculate notelength is ms from gate length
       if(ratchets[track].val[ratchets[track].index] >0) ratchetcnt[track]=(ratchets[track].val[ratchets[track].index]+1)*2-1; // for 1 ratchet the count is 3(noteon) 2 (noteoff) 1 (noteon) 0 (noteoff)
       if ((active_notelength[track] > 0) && (ratchetcnt[track] > 0)) { // if we have ratchets divide up the notelength to the number of ratchets
@@ -507,7 +536,7 @@ void clocktick (long clockperiod) {
       }
       notetimer[track]=millis()+active_notelength[track];
       if ((active_notelength[track] > 0) && (!tie[track])) {  // no note on when gate is zero or a tied note is in progress
-        active_note[track]=notes[track].val[notes[track].index]+offsets[track].val[offsets[track].index]+notes[track].root;
+        active_note[track]=notes[track].val[notes[track].index]+offsets[track].val[offsets[track].index]*offsets[track].active[offsets[track].index]+notes[track].root;
         active_note[track] = constrain(active_note[track],0,127); // limit to MIDI range
         active_note[track]= quantize(active_note[track],scales[current_scale[track]],notes[track].root); // quantize to current root and scale
         active_velocity[track]=constrain(velocities[track].val[velocities[track].index]*VELOCITYSCALE,0,127);
