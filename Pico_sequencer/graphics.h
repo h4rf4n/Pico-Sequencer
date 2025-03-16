@@ -125,10 +125,10 @@ void updateseqlen(sequencer seq) {
 void drawindex(int16_t index, int16_t active = 1) {
   int x=CANVAS_ORIGIN_X+(CANVAS_WIDTH/SEQ_STEPS)*index+4;
   int y=CANVAS_ORIGIN_Y -4; //
-  if (active!=0)
     display.fillCircle(x,y,2, WHITE);
-  else
-    display.fillCircle(x,y,1, WHITE);
+  if (active==0)
+    // display.fillCircle(x,y,2, BLACK);
+    display.fillRect(x-1,y-1,3,3, BLACK);
 #ifdef OLED_DISPLAY
   display.display();
 #endif
@@ -137,12 +137,9 @@ void drawindex(int16_t index, int16_t active = 1) {
 void undrawindex(int16_t index, int16_t active) {
   int x=CANVAS_ORIGIN_X+(CANVAS_WIDTH/SEQ_STEPS)*index+4;
   int y=CANVAS_ORIGIN_Y -4; //
-  if (active!=0) {
-    display.fillCircle(x,y,3, WHITE);
-    display.fillCircle(x,y,2, BLACK);
-  }
-  else
-    display.fillCircle(x,y,3, BLACK);
+  display.fillCircle(x,y,2, BLACK);
+  if (active!=0)
+    display.drawPixel(x,y, WHITE);
 #ifdef OLED_DISPLAY
   display.display();
 #endif
